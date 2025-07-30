@@ -53,37 +53,50 @@ function simular() {
   const precioSugerido = (base * (1 + margen)) / (1 - clasica * (1 + iva));
 
   function calcularGanancia(precio, comision) {
-    let costoEnvio = precio >= envioGratis ? 5500 : 0; // tarifa simple <1kg
-    let retencion = precio * comision;
-    let ivaCom = retencion * iva;
-    let totalRet = retencion + ivaCom;
-    let neto = precio - totalRet - costoEnvio;
-    let ganancia = neto - base;
-    return { neto, ganancia, totalRet, costoEnvio };
+    const aplicaEnvioGratis = precio >= envioGratis;
+    const costoEnvio = aplicaEnvioGratis ? 5500 : 0; // tarifa simple <1kg
+    const retencion = precio * comision;
+    const ivaCom = retencion * iva;
+    const totalRet = retencion + ivaCom;
+    const neto = precio - totalRet - costoEnvio;
+    const ganancia = neto - base;
+    return { neto, ganancia, totalRet, costoEnvio, aplicaEnvioGratis };
   }
 
   const precioFinal = precioManual > 0 ? precioManual : precioSugerido;
+  const esSugerido = precioManual <= 0;
 
   const clasicaRes = calcularGanancia(precioFinal, clasica);
   const premiumRes = calcularGanancia(precioFinal, premium);
 
+  // Texto envío
+  function textoEnvio(r) {
+    return r.aplicaEnvioGratis
+      ? `Gratis para el comprador (descuento vendedor ${r.costoEnvio} COP)`
+      : `No gratis (costo vendedor 0 COP)`;
+  }
+
   // Mostrar resultados
   const resultados = `
     <h3>Resultados</h3>
-    <p><strong>Precio usado:</strong> ${precioFinal.toFixed(2)} COP</p>
+    <p><strong>Precio final utilizado:</strong> ${precioFinal.toFixed(2)} COP 
+       ${esSugerido ? '(calculado con el margen deseado)' : '(ingresado manualmente)'}
+    </p>
+
     <h4>Clásica</h4>
     <ul>
       <li>Ingreso neto: ${clasicaRes.neto.toFixed(2)} COP</li>
       <li>Ganancia neta: ${clasicaRes.ganancia.toFixed(2)} COP</li>
       <li>Comisiones+IVA: ${clasicaRes.totalRet.toFixed(2)} COP</li>
-      <li>Envío descontado: ${clasicaRes.costoEnvio}</li>
+      <li>Envío: ${textoEnvio(clasicaRes)}</li>
     </ul>
+
     <h4>Premium</h4>
     <ul>
       <li>Ingreso neto: ${premiumRes.neto.toFixed(2)} COP</li>
       <li>Ganancia neta: ${premiumRes.ganancia.toFixed(2)} COP</li>
       <li>Comisiones+IVA: ${premiumRes.totalRet.toFixed(2)} COP</li>
-      <li>Envío descontado: ${premiumRes.costoEnvio}</li>
+      <li>Envío: ${textoEnvio(premiumRes)}</li>
     </ul>
   `;
   document.getElementById("resultados").innerHTML = resultados;
@@ -104,4 +117,4 @@ function simular() {
       ]
     }
   });
-               }
+}
