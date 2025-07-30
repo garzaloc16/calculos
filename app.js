@@ -1,27 +1,75 @@
-// Datos temporales (se reemplazarán dinámicamente)
-let categorias = [];
+// ===============================
+// Tabla de categorías ML Colombia
+// ===============================
+let categorias = [
+  { nombre: "Accesorios para Vehículos", clasica: 0.13, premium: 0.17 },
+  { nombre: "Agro", clasica: 0.11, premium: 0.15 },
+  { nombre: "Animales y Mascotas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Antigüedades y Colecciones", clasica: 0.15, premium: 0.19 },
+  { nombre: "Arte, Papelería y Mercería", clasica: 0.13, premium: 0.17 },
+  { nombre: "Bebés", clasica: 0.13, premium: 0.17 },
+  { nombre: "Belleza y Cuidado Personal", clasica: 0.13, premium: 0.17 },
+  { nombre: "Cámaras y Accesorios", clasica: 0.13, premium: 0.17 },
+  { nombre: "Celulares y Teléfonos", clasica: 0.13, premium: 0.17 },
+  { nombre: "Computación", clasica: 0.13, premium: 0.17 },
+  { nombre: "Consolas y Videojuegos", clasica: 0.13, premium: 0.17 },
+  { nombre: "Construcción", clasica: 0.13, premium: 0.17 },
+  { nombre: "Deportes y Fitness", clasica: 0.13, premium: 0.17 },
+  { nombre: "Electrodomésticos", clasica: 0.13, premium: 0.17 },
+  { nombre: "Electrónica, Audio y Video", clasica: 0.13, premium: 0.17 },
+  { nombre: "Herramientas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Hogar y Muebles", clasica: 0.13, premium: 0.17 },
+  { nombre: "Industrias y Oficinas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Instrumentos Musicales", clasica: 0.13, premium: 0.17 },
+  { nombre: "Juegos y Juguetes", clasica: 0.13, premium: 0.17 },
+  { nombre: "Libros, Revistas y Comics", clasica: 0.13, premium: 0.17 },
+  { nombre: "Moda", clasica: 0.14, premium: 0.18 },
+  { nombre: "Música, Películas y Series", clasica: 0.13, premium: 0.17 },
+  { nombre: "Recuerdos, Cotillón y Fiestas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Relojes y Joyas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Salud y Equipamiento Médico", clasica: 0.13, premium: 0.17 },
+  { nombre: "Servicios", clasica: 0.15, premium: 0.19 },
+  { nombre: "Souvenirs, Cotillón y Fiestas", clasica: 0.13, premium: 0.17 },
+  { nombre: "Otras categorías", clasica: 0.13, premium: 0.17 }
+];
 
-// Cargar categorías desde MercadoLibre (online)
-async function cargarCategorias() {
-  // Aquí simulo la carga online: en producción, conectar a la API real
-  categorias = [
-    { nombre: "Electrónica", clasica: 0.13, premium: 0.17 },
-    { nombre: "Hogar", clasica: 0.13, premium: 0.17 },
-    { nombre: "Ropa", clasica: 0.14, premium: 0.18 }
-    // TODO: cargar todas automáticamente
-  ];
+// ===============================
+// Cargar categorías en el select
+// ===============================
+function cargarCategorias() {
   const select = document.getElementById("categoria");
+  select.innerHTML = "";
   categorias.forEach((c, i) => {
     const option = document.createElement("option");
     option.value = i;
-    option.textContent = c.nombre;
+    option.textContent = `${c.nombre}`;
     select.appendChild(option);
   });
+
+  // Mostrar detalle inicial
+  mostrarDetalleCategoria(0);
+
+  // Cada vez que cambia selección, mostrar detalle
+  select.addEventListener("change", () => {
+    mostrarDetalleCategoria(parseInt(select.value));
+  });
+}
+
+// Muestra los porcentajes seleccionados en un div
+function mostrarDetalleCategoria(idx) {
+  const detalle = document.getElementById("detalleCategoria");
+  const c = categorias[idx];
+  detalle.innerHTML = `
+    <p><strong>Comisión Clásica:</strong> ${(c.clasica*100).toFixed(0)}% | 
+       <strong>Comisión Premium:</strong> ${(c.premium*100).toFixed(0)}%</p>
+  `;
 }
 
 window.onload = cargarCategorias;
 
-// Costo unitario
+// ===============================
+// Cálculo costo unitario
+// ===============================
 let costoUnitario = 0;
 
 function calcularCostoUnitario() {
@@ -36,7 +84,9 @@ function calcularCostoUnitario() {
     `Costo unitario importación: ${costoUnitario.toFixed(2)} COP`;
 }
 
+// ===============================
 // Simulación MercadoLibre
+// ===============================
 let chart = null;
 
 function simular() {
@@ -48,7 +98,6 @@ function simular() {
   const iva = 0.19;
   const envioGratis = 60000;
 
-  // Precio sugerido: solo si no hay precio manual
   const base = costoUnitario;
   const precioSugerido = (base * (1 + margen)) / (1 - clasica * (1 + iva));
 
@@ -69,18 +118,16 @@ function simular() {
   const clasicaRes = calcularGanancia(precioFinal, clasica);
   const premiumRes = calcularGanancia(precioFinal, premium);
 
-  // Texto envío
   function textoEnvio(r) {
     return r.aplicaEnvioGratis
       ? `Gratis para el comprador (descuento vendedor ${r.costoEnvio} COP)`
       : `No gratis (costo vendedor 0 COP)`;
   }
 
-  // Mostrar resultados
   const resultados = `
     <h3>Resultados</h3>
     <p><strong>Precio final utilizado:</strong> ${precioFinal.toFixed(2)} COP 
-       ${esSugerido ? '(calculado con el margen deseado)' : '(ingresado manualmente)'}
+       ${esSugerido ? '(calculado con margen)' : '(ingresado manualmente)'}
     </p>
 
     <h4>Clásica</h4>
@@ -101,7 +148,6 @@ function simular() {
   `;
   document.getElementById("resultados").innerHTML = resultados;
 
-  // Gráfico
   const ctx = document.getElementById("grafico").getContext("2d");
   if (chart) chart.destroy();
   chart = new Chart(ctx, {
@@ -117,4 +163,4 @@ function simular() {
       ]
     }
   });
-}
+                                                      }
