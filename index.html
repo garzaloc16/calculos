@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador MercadoLibre Colombia</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Simulador MercadoLibre Colombia</h1>
+
+    <!-- MODULO COSTO IMPORTACIÓN -->
+    <section>
+      <h2>1. Costo de Importación</h2>
+      <div class="form-group">
+        <label>Unidades:</label>
+        <input type="number" id="unidades" value="100">
+      </div>
+      <div class="form-group">
+        <label>Valor total compra (COP):</label>
+        <input type="number" id="valorCompra" value="1000000">
+      </div>
+      <div class="form-group">
+        <label>Envío internacional (COP):</label>
+        <input type="number" id="envioInt" value="200000">
+      </div>
+      <div class="form-group">
+        <label>Impuestos/aranceles (COP, opcional):</label>
+        <input type="number" id="impuestos" value="0">
+      </div>
+      <button onclick="calcularCostoUnitario()">Calcular costo unitario</button>
+      <p id="resultadoImportacion"></p>
+    </section>
+
+    <!-- MODULO SIMULADOR MERCADOLIBRE -->
+    <section>
+      <h2>2. Simulación MercadoLibre</h2>
+      <div class="form-group">
+        <label>Categoría:</label>
+        <select id="categoria"></select>
+      </div>
+      <div class="form-group">
+        <label>Margen deseado (%):</label>
+        <input type="number" id="margen" value="50">
+      </div>
+      <div class="form-group">
+        <label>Precio manual (opcional):</label>
+        <input type="number" id="precioManual" placeholder="0 para ignorar">
+      </div>
+      <button onclick="simular()">Simular</button>
+
+      <div id="resultados"></div>
+      <canvas id="grafico" width="400" height="200"></canvas>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
