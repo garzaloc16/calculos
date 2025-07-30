@@ -1,52 +1,35 @@
-// ======================
-// Categorías y comisiones reales Colombia (2024-2025)
-// ======================
-let categorias = [];
+// Datos de comisiones por categoría
+const categorias = {
+  "Electrónica": 0.16,
+  "Hogar": 0.13,
+  "Ropa": 0.17,
+  "Accesorios": 0.15,
+  "Otros": 0.14
+};
 
-async function cargarCategorias() {
-  categorias = [
-    { nombre: "Accesorios para vehículos", clasica: 0.13, premium: 0.17 },
-    { nombre: "Agro", clasica: 0.13, premium: 0.17 },
-    { nombre: "Alimentos y Bebidas", clasica: 0.13, premium: 0.17 },
-    { nombre: "Animales y Mascotas", clasica: 0.13, premium: 0.17 },
-    { nombre: "Antigüedades y Colecciones", clasica: 0.13, premium: 0.17 },
-    { nombre: "Arte, Papelería y Mercería", clasica: 0.13, premium: 0.17 },
-    { nombre: "Bebés", clasica: 0.13, premium: 0.17 },
-    { nombre: "Belleza y Cuidado Personal", clasica: 0.13, premium: 0.17 },
-    { nombre: "Celulares y Telefonía", clasica: 0.13, premium: 0.17 },
-    { nombre: "Computación", clasica: 0.13, premium: 0.17 },
-    { nombre: "Consolas y Videojuegos", clasica: 0.13, premium: 0.17 },
-    { nombre: "Deportes y Fitness", clasica: 0.13, premium: 0.17 },
-    { nombre: "Electrodomésticos", clasica: 0.13, premium: 0.17 },
-    { nombre: "Electrónica, Audio y Video", clasica: 0.13, premium: 0.17 },
-    { nombre: "Herramientas", clasica: 0.13, premium: 0.17 },
-    { nombre: "Hogar y Muebles", clasica: 0.13, premium: 0.17 },
-    { nombre: "Industrias y Oficinas", clasica: 0.13, premium: 0.17 },
-    { nombre: "Instrumentos Musicales", clasica: 0.13, premium: 0.17 },
-    { nombre: "Juegos y Juguetes", clasica: 0.13, premium: 0.17 },
-    { nombre: "Libros, Revistas y Comics", clasica: 0.13, premium: 0.17 },
-    { nombre: "Moda y Ropa", clasica: 0.14, premium: 0.18 },
-    { nombre: "Música, Películas y Series", clasica: 0.13, premium: 0.17 },
-    { nombre: "Salud y Equipamiento Médico", clasica: 0.13, premium: 0.17 },
-    { nombre: "Otras categorías", clasica: 0.13, premium: 0.17 },
-  ];
-
+// Rellena el combo de categorías
+window.onload = () => {
   const select = document.getElementById("categoria");
-  categorias.forEach((c, i) => {
-    const option = document.createElement("option");
-    option.value = i;
-    option.textContent = c.nombre;
-    select.appendChild(option);
+  Object.keys(categorias).forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = cat;
+    select.appendChild(opt);
   });
+  actualizarDetalleCategoria();
+};
+
+// Actualiza texto de detalle
+document.getElementById("categoria").addEventListener("change", actualizarDetalleCategoria);
+
+function actualizarDetalleCategoria() {
+  const cat = document.getElementById("categoria").value;
+  const comision = categorias[cat] * 100;
+  document.getElementById("detalleCategoria").innerText =
+    `Comisión MercadoLibre en esta categoría: ${comision}%`;
 }
 
-window.onload = cargarCategorias;
-
-// ======================
-// Cálculo de costo unitario
-// ======================
-let costoUnitario = 0;
-
+// Calcula costo unitario de importación
 function calcularCostoUnitario() {
   const unidades = parseFloat(document.getElementById("unidades").value);
   const valorCompra = parseFloat(document.getElementById("valorCompra").value);
@@ -54,101 +37,78 @@ function calcularCostoUnitario() {
   const impuestos = parseFloat(document.getElementById("impuestos").value);
 
   const total = valorCompra + envioInt + impuestos;
-  costoUnitario = total / unidades;
+  const unitario = total / unidades;
+
   document.getElementById("resultadoImportacion").innerText =
-    `Costo unitario importación: ${costoUnitario.toFixed(2)} COP`;
+    `Costo unitario de importación: ${unitario.toFixed(2)} COP`;
+  return unitario;
 }
 
-// ======================
-// Simulación
-// ======================
-let chart = null;
-
 function simular() {
-  const idx = parseInt(document.getElementById("categoria").value);
+  const costoUnitario = calcularCostoUnitario();
+  const categoria = document.getElementById("categoria").value;
   const margen = parseFloat(document.getElementById("margen").value) / 100;
   const precioManual = parseFloat(document.getElementById("precioManual").value) || 0;
-  const reputacion = document.getElementById("reputacion").value; // NUEVO
+  const reputacion = document.getElementById("reputacion").value;
 
-  const { clasica, premium } = categorias[idx];
-  const iva = 0.19;
-  const envioGratis = 60000;
+  const comision = categorias[categoria];
+  let precioSugerido = precioManual > 0 ? precioManual : costoUnitario * (1 + margen);
 
-  // Precio sugerido
-  const base = costoUnitario;
-  const precioSugerido = (base * (1 + margen)) / (1 - clasica * (1 + iva));
+  // Determinar envío gratis
+  let aplicaEnvioGratis = precioSugerido >= 60000; // simplificación
+  let costoEnvio = 0;
 
-  function calcularGanancia(precio, comision) {
-    const aplicaEnvioGratis = precio >= envioGratis;
-    // Si es nuevo, NO hay descuento de envío
-    const costoEnvio = aplicaEnvioGratis
-      ? (reputacion === "nuevo" ? 0 : 5500)
-      : 0;
-
-    const retencion = precio * comision;
-    const ivaCom = retencion * iva;
-    const totalRet = retencion + ivaCom;
-    const neto = precio - totalRet - costoEnvio;
-    const ganancia = neto - base;
-    return { neto, ganancia, totalRet, costoEnvio, aplicaEnvioGratis };
+  if (aplicaEnvioGratis && reputacion === "verde") {
+    costoEnvio = 5500; // costo asumido por el vendedor
   }
 
-  const precioFinal = precioManual > 0 ? precioManual : precioSugerido;
-  const esSugerido = precioManual <= 0;
+  const comisionML = precioSugerido * comision;
+  const gananciaNeta = precioSugerido - comisionML - costoEnvio - costoUnitario;
+  const gananciaPct = (gananciaNeta / costoUnitario) * 100;
 
-  const clasicaRes = calcularGanancia(precioFinal, clasica);
-  const premiumRes = calcularGanancia(precioFinal, premium);
-
-  // Mensaje del envío
-  function textoEnvio(r) {
-    if (r.aplicaEnvioGratis) {
-      return reputacion === "nuevo"
-        ? "Envío gratis para el comprador (sin descuento para vendedor nuevo, MercadoLibre NO cubre costo)"
-        : `Incluye envío gratis (MercadoLibre descuenta ${r.costoEnvio} COP al vendedor)`;
-    } else {
-      return "No incluye envío gratis. El comprador paga el envío.";
-    }
-  }
-
-  // Mostrar resultados
-  const resultados = `
-    <h3>Resultados</h3>
-    <p><strong>Precio final utilizado:</strong> ${precioFinal.toFixed(2)} COP 
-       ${esSugerido ? '(calculado con el margen deseado)' : '(ingresado manualmente)'}
-    </p>
-
-    <h4>Clásica</h4>
-    <ul>
-      <li>Ingreso neto: ${clasicaRes.neto.toFixed(2)} COP</li>
-      <li>Ganancia neta: ${clasicaRes.ganancia.toFixed(2)} COP</li>
-      <li>Comisiones+IVA: ${clasicaRes.totalRet.toFixed(2)} COP</li>
-      <li>Envío: ${textoEnvio(clasicaRes)}</li>
-    </ul>
-
-    <h4>Premium</h4>
-    <ul>
-      <li>Ingreso neto: ${premiumRes.neto.toFixed(2)} COP</li>
-      <li>Ganancia neta: ${premiumRes.ganancia.toFixed(2)} COP</li>
-      <li>Comisiones+IVA: ${premiumRes.totalRet.toFixed(2)} COP</li>
-      <li>Envío: ${textoEnvio(premiumRes)}</li>
-    </ul>
+  const resultadosDiv = document.getElementById("resultados");
+  resultadosDiv.innerHTML = `
+    <p>Precio sugerido: ${precioSugerido.toFixed(0)} COP</p>
+    <p>Comisión ML: ${comisionML.toFixed(0)} COP</p>
+    <p>${textoEnvio({ aplicaEnvioGratis, costoEnvio })}</p>
+    <p><b>Ganancia neta: ${gananciaNeta.toFixed(0)} COP</b> – <b>Esto es lo que te ganas</b></p>
+    <p><b>Porcentaje de ganancia: ${gananciaPct.toFixed(1)}%</b></p>
   `;
-  document.getElementById("resultados").innerHTML = resultados;
 
-  // Gráfico
+  // Mostrar gráfico
   const ctx = document.getElementById("grafico").getContext("2d");
-  if (chart) chart.destroy();
-  chart = new Chart(ctx, {
+  if (window.miGrafico) window.miGrafico.destroy();
+  window.miGrafico = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: ["Clásica", "Premium"],
-      datasets: [
-        {
-          label: "Ganancia neta",
-          data: [clasicaRes.ganancia, premiumRes.ganancia],
-          backgroundColor: ["#4caf50", "#2196f3"]
-        }
-      ]
-    }
+      labels: ["Costo", "Comisión", "Envío", "Ganancia"],
+      datasets: [{
+        label: "Distribución de costos",
+        data: [
+          costoUnitario,
+          comisionML,
+          costoEnvio,
+          gananciaNeta > 0 ? gananciaNeta : 0
+        ],
+        backgroundColor: ["#36A2EB", "#FF6384", "#FFCE56", "#4BC0C0"]
+      }]
+    },
+    options: { responsive: true }
   });
+}
+
+// Texto para el envío
+function textoEnvio(r) {
+  const reputacion = document.getElementById("reputacion").value;
+  if (r.aplicaEnvioGratis) {
+    if (reputacion === "verde") {
+      return `Envío gratis: MercadoLibre descuenta ${r.costoEnvio} COP al vendedor`;
+    } else {
+      return `El comprador paga el envío (vendedor nuevo, no se descuenta)`;
+    }
+  } else {
+    return reputacion === "verde"
+      ? "No aplica envío gratis (precio bajo)"
+      : "No aplica envío gratis, el comprador paga el envío";
+  }
 }
