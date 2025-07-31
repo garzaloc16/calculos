@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simulador MercadoLibre Colombia</title>
   <link rel="stylesheet" href="styles.css">
+  <!-- Chart.js debe estar cargado aquí en el <head> -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -65,10 +66,10 @@
       <button onclick="simular()">Simular</button>
 
       <div id="resultados"></div>
-      <canvas id="grafico" width="400" height="200"></canvas>
     </section>
   </div>
 
+  <!-- Muy importante: cargar app.js al final, después de Chart.js -->
   <script src="app.js"></script>
 </body>
 </html>
