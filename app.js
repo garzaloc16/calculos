@@ -1,5 +1,3 @@
-// app.js
-
 // Datos de categorías con porcentaje de comisión
 const categorias = {
   "Electrónica": 0.13,
@@ -113,42 +111,44 @@ function simular() {
     </div>
   `;
 
-  // Dibujar gráfico comparativo
-  const ctx = document.getElementById("graficoGanancias").getContext("2d");
-  new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Ganancia por unidad", "Ganancia total", "Inversión recuperada"],
-      datasets: [
-        {
-          label: "Clásica",
-          data: [
-            resClasica.gananciaNetaPorUnidad,
-            resClasica.gananciaTotal,
-            resClasica.inversionTotal
-          ],
-          backgroundColor: "rgba(54, 162, 235, 0.6)"
-        },
-        {
-          label: "Premium",
-          data: [
-            resPremium.gananciaNetaPorUnidad,
-            resPremium.gananciaTotal,
-            resPremium.inversionTotal
-          ],
-          backgroundColor: "rgba(255, 99, 132, 0.6)"
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "top" },
-        title: { display: true, text: "Comparación Clásica vs Premium" }
+  // Dibujar gráfico comparativo con un retraso pequeño
+  setTimeout(() => {
+    const ctx = document.getElementById("graficoGanancias").getContext("2d");
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Ganancia por unidad", "Ganancia total", "Inversión recuperada"],
+        datasets: [
+          {
+            label: "Clásica",
+            data: [
+              resClasica.gananciaNetaPorUnidad,
+              resClasica.gananciaTotal,
+              resClasica.inversionTotal
+            ],
+            backgroundColor: "rgba(54, 162, 235, 0.6)"
+          },
+          {
+            label: "Premium",
+            data: [
+              resPremium.gananciaNetaPorUnidad,
+              resPremium.gananciaTotal,
+              resPremium.inversionTotal
+            ],
+            backgroundColor: "rgba(255, 99, 132, 0.6)"
+          }
+        ]
       },
-      scales: {
-        y: { ticks: { callback: value => value.toLocaleString("es-CO") } }
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "top" },
+          title: { display: true, text: "Comparación Clásica vs Premium" }
+        },
+        scales: {
+          y: { ticks: { callback: value => value.toLocaleString("es-CO") } }
+        }
       }
-    }
-  });
+    });
+  }, 50);
 }
