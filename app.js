@@ -73,10 +73,11 @@ function simular() {
     const ingresoNeto = precio - comisionTotal - costoEnvioGratis - costoUnitario;
 
     const gananciaNetaPorUnidad = ingresoNeto;
+    const porcentajeGanancia = (gananciaNetaPorUnidad / costoUnitario) * 100;
     const gananciaTotal = gananciaNetaPorUnidad * unidades;
     const inversionTotal = costoUnitario * unidades;
 
-    return { precio, gananciaNetaPorUnidad, gananciaTotal, inversionTotal, costoEnvioGratis };
+    return { precio, gananciaNetaPorUnidad, gananciaTotal, inversionTotal, costoEnvioGratis, porcentajeGanancia };
   }
 
   const resClasica = calcularResultados(precioClasica, comisionBase);
@@ -92,6 +93,7 @@ function simular() {
         <p><b>Precio sugerido:</b> ${resClasica.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Envío:</b> ${resClasica.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resClasica.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
         <p><b>Ganancia neta por unidad:</b> ${resClasica.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
+        <p><b>Margen neto sobre costo:</b> ${resClasica.porcentajeGanancia.toFixed(2)}%</p>
         <p><b>Total ganancias netas:</b> ${resClasica.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resClasica.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
       </div>
@@ -101,6 +103,7 @@ function simular() {
         <p><b>Precio sugerido:</b> ${resPremium.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Envío:</b> ${resPremium.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resPremium.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
         <p><b>Ganancia neta por unidad:</b> ${resPremium.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
+        <p><b>Margen neto sobre costo:</b> ${resPremium.porcentajeGanancia.toFixed(2)}%</p>
         <p><b>Total ganancias netas:</b> ${resPremium.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resPremium.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
       </div>
@@ -151,4 +154,4 @@ function simular() {
       }
     });
   }, 50);
-}
+                                                                                              }
