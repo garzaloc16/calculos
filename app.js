@@ -1,117 +1,112 @@
-// Configuración de comisiones por categoría
+// app.js
+
+// Datos de categorías con porcentaje de comisión
 const categorias = {
-  "Electrónica (13%)": { clasica: 0.13, premium: 0.28 },
-  "Hogar (13%)": { clasica: 0.13, premium: 0.28 },
-  "Ropa y accesorios (17%)": { clasica: 0.17, premium: 0.32 },
-  "Deportes (14%)": { clasica: 0.14, premium: 0.29 },
-  "Juguetes (15%)": { clasica: 0.15, premium: 0.30 },
-  "Herramientas (13%)": { clasica: 0.13, premium: 0.28 },
+  "Electrónica": 0.13,
+  "Hogar": 0.13,
+  "Ropa y accesorios": 0.13,
+  "Belleza y cuidado personal": 0.14,
+  "Deportes": 0.14,
+  "Juguetes": 0.15,
+  "Vehículos - Accesorios": 0.13,
+  "Otros": 0.17
 };
 
-// IVA sobre la comisión
-const IVA = 0.19;
+// Rellenar selector de categorías
+const selectCategoria = document.getElementById("categoria");
+for (const cat in categorias) {
+  const option = document.createElement("option");
+  option.value = cat;
+  option.textContent = `${cat} (${(categorias[cat] * 100).toFixed(0)}%)`;
+  selectCategoria.appendChild(option);
+}
 
-// Llenar categorías
-window.onload = () => {
-  const select = document.getElementById("categoria");
-  for (const cat in categorias) {
-    const option = document.createElement("option");
-    option.value = cat;
-    option.textContent = cat;
-    select.appendChild(option);
-  }
-};
+// Mostrar detalle cuando cambia la categoría
+selectCategoria.addEventListener("change", () => {
+  const cat = selectCategoria.value;
+  const porcentaje = categorias[cat] * 100;
+  document.getElementById("detalleCategoria").innerText =
+    `Comisión en esta categoría: ${porcentaje}% (Clásica) o +5% (Premium)`;
+});
 
-// Cálculo costo unitario
 function calcularCostoUnitario() {
-  const unidades = +document.getElementById("unidades").value;
-  const valorCompra = +document.getElementById("valorCompra").value;
-  const envioInt = +document.getElementById("envioInt").value;
-  const impuestos = +document.getElementById("impuestos").value;
-  const costoUnitario = (valorCompra + envioInt + impuestos) / unidades;
+  const unidades = parseFloat(document.getElementById("unidades").value);
+  const valorCompra = parseFloat(document.getElementById("valorCompra").value);
+  const envioInt = parseFloat(document.getElementById("envioInt").value);
+  const impuestos = parseFloat(document.getElementById("impuestos").value);
 
+  const costoUnitario = (valorCompra + envioInt + impuestos) / unidades;
   document.getElementById("resultadoImportacion").innerText =
-    `Costo unitario: ${costoUnitario.toFixed(0)} COP`;
+    `Costo unitario: ${costoUnitario.toLocaleString("es-CO", { style: "currency", currency: "COP" })}`;
   return costoUnitario;
 }
 
 function simular() {
-  const unidades = +document.getElementById("unidades").value;
+  const unidades = parseFloat(document.getElementById("unidades").value);
+  const costoUnitario = calcularCostoUnitario();
   const categoria = document.getElementById("categoria").value;
   const reputacion = document.getElementById("reputacion").value;
-  const margen = +document.getElementById("margen").value / 100;
-  const precioManual = +document.getElementById("precioManual").value;
-  const costoUnitario = calcularCostoUnitario();
+  const margenDeseado = parseFloat(document.getElementById("margen").value) / 100;
+  const precioManual = parseFloat(document.getElementById("precioManual").value) || 0;
 
-  const { clasica, premium } = categorias[categoria];
+  const comisionBase = categorias[categoria];
+  const comisionPremiumExtra = 0.05;
 
-  // ¿El vendedor paga el envío?
-  let costoEnvio = 0;
-  if (reputacion === "verde") {
-    // MercadoLíder suele cubrir envíos en productos > 79,900 COP
-    costoEnvio = 10000; // estimado
+  // Función para calcular precio de venta que garantice el margen neto deseado
+  function calcularPrecioVenta(margen, comision) {
+    // Fórmula ajustada: ingreso neto = precio * (1 - comision) - envioGratis
+    // Queremos que ingreso neto = costoUnitario * (1 + margen)
+    // Para envío gratis se descuenta después, aquí solo usamos la parte de comisión
+    return (costoUnitario * (1 + margen)) / (1 - comision);
   }
 
-  // Función para calcular precio para cada tipo de publicación
-  const calcularPrecio = (tasa) => {
-    return (
-      (costoUnitario * (1 + margen) + costoEnvio) /
-      (1 - tasa * (1 + IVA))
-    );
-  };
+  // Precios sugeridos
+  let precioClasica = calcularPrecioVenta(margenDeseado, comisionBase);
+  let precioPremium = calcularPrecioVenta(margenDeseado, comisionBase + comisionPremiumExtra);
 
-  // Precios sugeridos para cada tipo
-  const precioSugeridoClasica = calcularPrecio(clasica);
-  const precioSugeridoPremium = calcularPrecio(premium);
+  // Si el usuario ingresa un precio manual, se usa ese precio
+  if (precioManual > 0) {
+    precioClasica = precioManual;
+    precioPremium = precioManual;
+  }
 
-  // Si hay precio manual, usamos ese precio en los cálculos
-  const precioUsado = (tipo) =>
-    precioManual > 0
-      ? precioManual
-      : tipo === "clasica"
-      ? precioSugeridoClasica
-      : precioSugeridoPremium;
+  // Función para calcular resultados finales teniendo en cuenta envío gratis
+  function calcularResultados(precio, comision) {
+    let costoEnvioGratis = 0;
+    if (precio >= 79900) {
+      // costo de envío según reputación
+      costoEnvioGratis = reputacion === "nuevo" ? 9000 : 7000;
+    }
 
-  // Función para calcular resultado neto
-  const calcularResultados = (tipo, tasa) => {
-    const precio = precioUsado(tipo);
-    const comision = precio * tasa;
-    const comisionConIVA = comision * (1 + IVA);
-    const netoUnidad = precio - comisionConIVA - costoEnvio - costoUnitario;
-    const netoTotal = netoUnidad * unidades;
+    const comisionTotal = precio * comision;
+    const ingresoNeto = precio - comisionTotal - costoEnvioGratis - costoUnitario;
+
+    const gananciaNetaPorUnidad = ingresoNeto;
+    const gananciaTotal = gananciaNetaPorUnidad * unidades;
     const inversionTotal = costoUnitario * unidades;
-    const porcentajeReal = (netoUnidad / costoUnitario) * 100;
 
-    return {
-      tipo,
-      precio,
-      netoUnidad,
-      netoTotal,
-      inversionTotal,
-      porcentajeReal,
-    };
-  };
+    return { precio, gananciaNetaPorUnidad, gananciaTotal, inversionTotal, costoEnvioGratis };
+  }
 
-  const resultadosClasica = calcularResultados("clasica", clasica);
-  const resultadosPremium = calcularResultados("premium", premium);
+  const resClasica = calcularResultados(precioClasica, comisionBase);
+  const resPremium = calcularResultados(precioPremium, comisionBase + comisionPremiumExtra);
 
-  // Mostrar resultados
   const resultadosDiv = document.getElementById("resultados");
   resultadosDiv.innerHTML = `
-    <h3>Resultados publicación Clásica</h3>
-    <p>Precio sugerido: ${resultadosClasica.precio.toFixed(0)} COP</p>
-    <p><b>Ganancia neta por unidad:</b> ${resultadosClasica.netoUnidad.toFixed(0)} COP</p>
-    <p><b>Ganancia neta total (${unidades} uds):</b> ${resultadosClasica.netoTotal.toFixed(0)} COP</p>
-    <p><b>Esto es lo que te ganas</b> (${resultadosClasica.porcentajeReal.toFixed(1)}% real)</p>
-    <p>Recuperas tu inversión de ${resultadosClasica.inversionTotal.toFixed(0)} COP y recibes ${resultadosClasica.netoTotal.toFixed(0)} COP en ganancias.</p>
+    <h3>Resultados:</h3>
 
-    <hr>
+    <h4>Publicación Clásica</h4>
+    <p>Precio sugerido: ${resClasica.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</p>
+    <p>Envío: ${resClasica.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resClasica.costoEnvioGratis.toLocaleString("es-CO", { style: "currency", currency: "COP" })})` : "No gratis (costo vendedor 0 COP)"}</p>
+    <p><b>Ganancia neta por unidad: ${resClasica.gananciaNetaPorUnidad.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</b> (esto es lo que te ganas, descontando TODO)</p>
+    <p><b>Total ganancias netas (todas las unidades): ${resClasica.gananciaTotal.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</b></p>
+    <p>Inversión recuperada: ${resClasica.inversionTotal.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</p>
 
-    <h3>Resultados publicación Premium</h3>
-    <p>Precio sugerido: ${resultadosPremium.precio.toFixed(0)} COP</p>
-    <p><b>Ganancia neta por unidad:</b> ${resultadosPremium.netoUnidad.toFixed(0)} COP</p>
-    <p><b>Ganancia neta total (${unidades} uds):</b> ${resultadosPremium.netoTotal.toFixed(0)} COP</p>
-    <p><b>Esto es lo que te ganas</b> (${resultadosPremium.porcentajeReal.toFixed(1)}% real)</p>
-    <p>Recuperas tu inversión de ${resultadosPremium.inversionTotal.toFixed(0)} COP y recibes ${resultadosPremium.netoTotal.toFixed(0)} COP en ganancias.</p>
+    <h4>Publicación Premium</h4>
+    <p>Precio sugerido: ${resPremium.precio.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</p>
+    <p>Envío: ${resPremium.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resPremium.costoEnvioGratis.toLocaleString("es-CO", { style: "currency", currency: "COP" })})` : "No gratis (costo vendedor 0 COP)"}</p>
+    <p><b>Ganancia neta por unidad: ${resPremium.gananciaNetaPorUnidad.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</b> (esto es lo que te ganas, descontando TODO)</p>
+    <p><b>Total ganancias netas (todas las unidades): ${resPremium.gananciaTotal.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</b></p>
+    <p>Inversión recuperada: ${resPremium.inversionTotal.toLocaleString("es-CO", { style: "currency", currency: "COP" })}</p>
   `;
 }
