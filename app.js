@@ -50,7 +50,6 @@ function simular() {
   const comisionBase = categorias[categoria];
   const comisionPremiumExtra = 0.05;
 
-  // Función para calcular precio de venta garantizando margen neto
   function calcularPrecioVenta(margen, comision) {
     return (costoUnitario * (1 + margen)) / (1 - comision);
   }
@@ -83,7 +82,6 @@ function simular() {
   const resClasica = calcularResultados(precioClasica, comisionBase);
   const resPremium = calcularResultados(precioPremium, comisionBase + comisionPremiumExtra);
 
-  // Mostrar resultados en bloques bonitos
   const resultadosDiv = document.getElementById("resultados");
   resultadosDiv.innerHTML = `
     <h3>Resultados:</h3>
@@ -92,8 +90,8 @@ function simular() {
         <h4 style="margin-bottom:10px;">Publicación Clásica</h4>
         <p><b>Precio sugerido:</b> ${resClasica.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Envío:</b> ${resClasica.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resClasica.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
-        <p><b>Ganancia neta por unidad:</b> ${resClasica.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
-        <p><b>Margen neto sobre costo:</b> ${resClasica.porcentajeGanancia.toFixed(2)}%</p>
+        <p><b>Ganancia neta por unidad:</b> ${resClasica.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
+        <p style="color:green;font-size:18px;"><b>Margen neto sobre costo:</b> ${resClasica.porcentajeGanancia.toFixed(2)}%</p>
         <p><b>Total ganancias netas:</b> ${resClasica.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resClasica.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
       </div>
@@ -101,9 +99,9 @@ function simular() {
       <div style="border:1px solid #ccc;padding:15px;border-radius:10px;background:#f9f9f9;">
         <h4 style="margin-bottom:10px;">Publicación Premium</h4>
         <p><b>Precio sugerido:</b> ${resPremium.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
-        <p><b>Envío:</b> ${resPremium.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resPremium.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
-        <p><b>Ganancia neta por unidad:</b> ${resPremium.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
-        <p><b>Margen neto sobre costo:</b> ${resPremium.porcentajeGanancia.toFixed(2)}%</p>
+        <p><b>Envío:</b> ${resPremium.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resPremium.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})}` : "No gratis (costo vendedor 0 COP)"}</p>
+        <p><b>Ganancia neta por unidad:</b> ${resPremium.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
+        <p style="color:green;font-size:18px;"><b>Margen neto sobre costo:</b> ${resPremium.porcentajeGanancia.toFixed(2)}%</p>
         <p><b>Total ganancias netas:</b> ${resPremium.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resPremium.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
       </div>
@@ -114,31 +112,39 @@ function simular() {
     </div>
   `;
 
-  // Dibujar gráfico comparativo con un retraso pequeño
   setTimeout(() => {
     const ctx = document.getElementById("graficoGanancias").getContext("2d");
     new Chart(ctx, {
       type: "bar",
       data: {
-        labels: ["Ganancia por unidad", "Ganancia total", "Inversión recuperada"],
+        labels: [
+          "Ganancia por unidad (COP)",
+          "Ganancia total (COP)",
+          "Inversión recuperada (COP)",
+          "Margen neto (%)"
+        ],
         datasets: [
           {
             label: "Clásica",
             data: [
               resClasica.gananciaNetaPorUnidad,
               resClasica.gananciaTotal,
-              resClasica.inversionTotal
+              resClasica.inversionTotal,
+              resClasica.porcentajeGanancia
             ],
-            backgroundColor: "rgba(54, 162, 235, 0.6)"
+            backgroundColor: "rgba(54, 162, 235, 0.6)",
+            yAxisID: 'y'
           },
           {
             label: "Premium",
             data: [
               resPremium.gananciaNetaPorUnidad,
               resPremium.gananciaTotal,
-              resPremium.inversionTotal
+              resPremium.inversionTotal,
+              resPremium.porcentajeGanancia
             ],
-            backgroundColor: "rgba(255, 99, 132, 0.6)"
+            backgroundColor: "rgba(255, 99, 132, 0.6)",
+            yAxisID: 'y'
           }
         ]
       },
@@ -149,9 +155,24 @@ function simular() {
           title: { display: true, text: "Comparación Clásica vs Premium" }
         },
         scales: {
-          y: { ticks: { callback: value => value.toLocaleString("es-CO") } }
+          y: {
+            type: 'linear',
+            position: 'left',
+            ticks: {
+              callback: (value) => value.toLocaleString("es-CO")
+            }
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: {
+              callback: (value) => value + '%'
+            },
+            min: 0
+          }
         }
       }
     });
   }, 50);
-                                                                                              }
+              }
