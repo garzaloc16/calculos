@@ -52,7 +52,7 @@ function simular() {
   const comisionBase = categorias[categoria];
   const comisionPremiumExtra = 0.05;
 
-  // Ajuste del costo de envío esperado
+  // Ajuste del costo de envío esperado (estimación para productos livianos)
   const costoEnvioEsperado = reputacion === "nuevo" ? 9000 : 7000;
 
   // Función para calcular precio de venta garantizando margen neto
@@ -71,7 +71,8 @@ function simular() {
 
   function calcularResultados(precio, comision) {
     let costoEnvioGratis = 0;
-    if (precio >= 79900) {
+    // *** ÚNICO CAMBIO: umbral de 79.900 -> 60.000 ***
+    if (precio >= 60000) {
       costoEnvioGratis = reputacion === "nuevo" ? 9000 : 7000;
     }
 
@@ -160,4 +161,4 @@ function simular() {
       }
     }
   });
-      }
+}
