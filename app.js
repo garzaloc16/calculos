@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,29 +15,42 @@ const envioTarifas = {
     nuevo: 7000,   // Vendedor nuevo, premium
     verde: 0,      // Vendedor verde, premium (ML asume costo)
   },
+} as const;
+
+// Normaliza números con coma/punto y sin espacios
+const toNumber = (v: string) => {
+  const s = (v ?? "").toString().trim().replace(/\s+/g, "").replace(/,/g, ".");
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : NaN;
 };
 
 export default function App() {
   const [costo, setCosto] = useState("");
   const [precio, setPrecio] = useState("");
-  const [publicacion, setPublicacion] = useState("clasica");
-  const [reputacion, setReputacion] = useState("nuevo");
-  const [resultado, setResultado] = useState(null);
+  const [publicacion, setPublicacion] = useState<"clasica" | "premium">("clasica");
+  const [reputacion, setReputacion] = useState<"nuevo" | "verde">("nuevo");
+  const [resultado, setResultado] = useState<null | {
+    comision: number;
+    envio: number;
+    gastos: number;
+    ganancia: number;
+    margen: number;
+    rentabilidad: number;
+  }>(null);
 
   const calcular = () => {
-    const costoNum = parseFloat(costo);
-    const precioNum = parseFloat(precio);
+    const costoNum = toNumber(costo);
+    const precioNum = toNumber(precio);
 
-    if (isNaN(costoNum) || isNaN(precioNum)) {
+    if (!Number.isFinite(costoNum) || !Number.isFinite(precioNum)) {
       alert("Por favor ingresa valores válidos");
       return;
     }
 
-    // Comisión Mercado Libre
-    const comision =
-      publicacion === "clasica" ? precioNum * 0.13 : precioNum * 0.17;
+    // Comisión Mercado Libre (mismas fórmulas)
+    const comision = publicacion === "clasica" ? precioNum * 0.13 : precioNum * 0.17;
 
-    // Envío según tabla
+    // Envío según tabla (mismo comportamiento que tenías)
     let envio = envioTarifas[publicacion][reputacion];
 
     // Si supera los 60k, comprador no paga envío,
@@ -53,18 +68,17 @@ export default function App() {
     // Margen de ganancia
     const margen = (ganancia / precioNum) * 100;
 
-    // Rentabilidad respecto al costo
+    // Rentabilidad respecto al costo (puede ser Infinity si costo=0)
     const rentabilidad = (ganancia / costoNum) * 100;
 
-    setResultado({
-      comision,
-      envio,
-      gastos,
-      ganancia,
-      margen,
-      rentabilidad,
-    });
+    setResultado({ comision, envio, gastos, ganancia, margen, rentabilidad });
   };
+
+  const fmtMoney = (n: number) =>
+    Number.isFinite(n) ? `$${n.toFixed(0)}` : "—";
+
+  const fmtPct = (n: number) =>
+    Number.isFinite(n) ? `${n.toFixed(2)}%` : (n === Infinity || n === -Infinity ? "∞" : "—");
 
   return (
     <div className="p-6 max-w-2xl mx-auto">
@@ -76,6 +90,8 @@ export default function App() {
             <label>Costo del producto:</label>
             <Input
               type="number"
+              inputMode="decimal"
+              step="any"
               value={costo}
               onChange={(e) => setCosto(e.target.value)}
             />
@@ -85,6 +101,8 @@ export default function App() {
             <label>Precio de venta:</label>
             <Input
               type="number"
+              inputMode="decimal"
+              step="any"
               value={precio}
               onChange={(e) => setPrecio(e.target.value)}
             />
@@ -95,7 +113,7 @@ export default function App() {
             <select
               className="border rounded p-2 w-full"
               value={publicacion}
-              onChange={(e) => setPublicacion(e.target.value)}
+              onChange={(e) => setPublicacion(e.target.value as "clasica" | "premium")}
             >
               <option value="clasica">Clásica (13%)</option>
               <option value="premium">Premium (17%)</option>
@@ -107,29 +125,29 @@ export default function App() {
             <select
               className="border rounded p-2 w-full"
               value={reputacion}
-              onChange={(e) => setReputacion(e.target.value)}
+              onChange={(e) => setReputacion(e.target.value as "nuevo" | "verde")}
             >
               <option value="nuevo">Nuevo vendedor</option>
               <option value="verde">Vendedor verde</option>
             </select>
           </div>
 
-          <Button onClick={calcular} className="w-full">
+          <Button type="button" onClick={calcular} className="w-full">
             Calcular
           </Button>
 
           {resultado && (
             <div className="mt-6 space-y-2">
-              <p>📦 Comisión: ${resultado.comision.toFixed(0)}</p>
-              <p>🚚 Envío: ${resultado.envio.toFixed(0)}</p>
-              <p>💰 Gastos totales: ${resultado.gastos.toFixed(0)}</p>
-              <p>✅ Ganancia neta: ${resultado.ganancia.toFixed(0)}</p>
-              <p>📊 Margen sobre venta: {resultado.margen.toFixed(2)}%</p>
-              <p>📈 Rentabilidad sobre costo: {resultado.rentabilidad.toFixed(2)}%</p>
+              <p>📦 Comisión: {fmtMoney(resultado.comision)}</p>
+              <p>🚚 Envío: {fmtMoney(resultado.envio)}</p>
+              <p>💰 Gastos totales: {fmtMoney(resultado.gastos)}</p>
+              <p>✅ Ganancia neta: {fmtMoney(resultado.ganancia)}</p>
+              <p>📊 Margen sobre venta: {fmtPct(resultado.margen)}</p>
+              <p>📈 Rentabilidad sobre costo: {fmtPct(resultado.rentabilidad)}</p>
             </div>
           )}
         </CardContent>
       </Card>
     </div>
   );
-}
+    }
