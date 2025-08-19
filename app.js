@@ -1,6 +1,10 @@
 // app.js
 
-// Datos de categorías con porcentaje de comisión
+// ====== Configuración ======
+const FREE_SHIPPING_THRESHOLD = 60000; // Envío gratis desde $60.000 COP (CO)
+
+// Datos de categorías con porcentaje de comisión (Clásica).
+// Premium = comisión base + 5%
 const categorias = {
   "Electrónica": 0.13,
   "Hogar": 0.13,
@@ -12,11 +16,14 @@ const categorias = {
   "Otros": 0.17
 };
 
-// Constantes de envío
-const FREE_SHIPPING_THRESHOLD = 60000;
-const envioPorReputacion = (reputacion) => (reputacion === "nuevo" ? 9000 : 7000);
+// Tabla simple de “costo de envío” (aporte del vendedor) por tipo de publicación y reputación.
+// Ajusta estos valores si tu cuenta muestra otros montos en el simulador de ML.
+const envioTarifas = {
+  clasica: { nuevo: 9000, verde: 7000 },
+  premium: { nuevo: 7000, verde: 0 }
+};
 
-// Rellenar selector de categorías
+// ====== UI: rellenar selector de categorías ======
 const selectCategoria = document.getElementById("categoria");
 for (const cat in categorias) {
   const option = document.createElement("option");
@@ -33,17 +40,12 @@ selectCategoria.addEventListener("change", () => {
     `Comisión en esta categoría: ${porcentaje}% (Clásica) o +5% (Premium)`;
 });
 
-// --- 1) Cálculo de costo unitario ---
+// ====== Cálculo costo unitario ======
 function calcularCostoUnitario() {
   const unidades = parseFloat(document.getElementById("unidades").value);
   const valorCompra = parseFloat(document.getElementById("valorCompra").value);
   const envioInt = parseFloat(document.getElementById("envioInt").value);
   const impuestos = parseFloat(document.getElementById("impuestos").value);
-
-  if (!unidades || unidades <= 0) {
-    alert("Las unidades deben ser mayores a 0");
-    return NaN;
-  }
 
   const costoUnitario = (valorCompra + envioInt + impuestos) / unidades;
   document.getElementById("resultadoImportacion").innerText =
@@ -51,12 +53,10 @@ function calcularCostoUnitario() {
   return costoUnitario;
 }
 
-// --- 2) Simulación MercadoLibre ---
+// ====== Simulación ML ======
 function simular() {
   const unidades = parseFloat(document.getElementById("unidades").value);
   const costoUnitario = calcularCostoUnitario();
-  if (isNaN(costoUnitario)) return; // si falló el cálculo unitario, detenemos
-
   const categoria = document.getElementById("categoria").value;
   const reputacion = document.getElementById("reputacion").value;
   const margenDeseado = parseFloat(document.getElementById("margen").value) / 100;
@@ -65,55 +65,78 @@ function simular() {
   const comisionBase = categorias[categoria];
   const comisionPremiumExtra = 0.05;
 
-  // Calcula precio sugerido garantizando margen, con lógica de 2 pasos:
-  // 1) Sin envío; 2) Si activa envío gratis, recalcula incluyendo el envío del vendedor.
-  function calcularPrecioVenta(margen, comision, reputacion) {
-    // Paso 1: ignorando envío
-    let p = (costoUnitario * (1 + margen)) / (1 - comision);
+  // Costo de envío estimado (si aplica envío gratis)
+  const costoEnvioClasica = envioTarifas.clasica[reputacion];
+  const costoEnvioPremium = envioTarifas.premium[reputacion];
 
-    // Si el precio calculado activa envío gratis, incluir el costo del vendedor y recalcular
-    if (p >= FREE_SHIPPING_THRESHOLD) {
-      const envio = envioPorReputacion(reputacion);
-      p = (costoUnitario * (1 + margen) + envio) / (1 - comision);
-      // Opcional: si justo cae por debajo del umbral tras recalcular, no pasa nada;
-      // el margen quedará un pelín por encima de lo pedido (mejor para ti).
+  // Calcula un precio de venta que garantice el margen deseado,
+  // agregando costo de envío SOLO si el precio final activa envío gratis.
+  function calcularPrecioVentaRobusto(margen, comision, costoEnvio) {
+    // Itera hasta estabilizar si debe incluir envío o no según el umbral
+    let incluyeEnvio = false;
+    let precio = 0;
+
+    for (let i = 0; i < 3; i++) {
+      const extraEnvio = incluyeEnvio ? costoEnvio : 0;
+      precio = (costoUnitario * (1 + margen) + extraEnvio) / (1 - comision);
+      const debeIncluir = precio >= FREE_SHIPPING_THRESHOLD;
+      if (debeIncluir === incluyeEnvio) break;
+      incluyeEnvio = debeIncluir;
     }
-
-    return p;
+    return { precio, incluyeEnvio };
   }
 
-  let precioClasica = calcularPrecioVenta(margenDeseado, comisionBase, reputacion);
-  let precioPremium = calcularPrecioVenta(margenDeseado, comisionBase + comisionPremiumExtra, reputacion);
+  // Sugerencias automáticas (salvo que el usuario ponga precio manual)
+  let sugClasica = calcularPrecioVentaRobusto(margenDeseado, comisionBase, costoEnvioClasica);
+  let sugPremium = calcularPrecioVentaRobusto(margenDeseado, comisionBase + comisionPremiumExtra, costoEnvioPremium);
 
-  if (precioManual > 0) {
-    precioClasica = precioManual;
-    precioPremium = precioManual;
-  }
+  let precioClasica = precioManual > 0 ? precioManual : sugClasica.precio;
+  let precioPremium = precioManual > 0 ? precioManual : sugPremium.precio;
 
-  // Con un precio dado, calcular resultados reales (incluye envío del vendedor solo si hay envío gratis)
-  function calcularResultados(precio, comision) {
-    let costoEnvioGratis = 0;
-    if (precio >= FREE_SHIPPING_THRESHOLD) {
-      costoEnvioGratis = envioPorReputacion(reputacion); // costo que asume el vendedor
-    }
+  function calcularResultados(precio, comision, costoEnvioTabla) {
+    // ¿Activa envío gratis?
+    const envioGratis = precio >= FREE_SHIPPING_THRESHOLD;
+
+    // Si hay envío gratis, el vendedor asume el costo según tabla; si no, lo paga el comprador (0 para el vendedor)
+    const costoEnvioVendedor = envioGratis ? costoEnvioTabla : 0;
 
     const comisionTotal = precio * comision;
-    const ingresoNeto = precio - comisionTotal - costoEnvioGratis - costoUnitario;
+    const ingresoNeto = precio - comisionTotal - costoEnvioVendedor - costoUnitario;
 
     const gananciaNetaPorUnidad = ingresoNeto;
     const gananciaTotal = gananciaNetaPorUnidad * unidades;
     const inversionTotal = costoUnitario * unidades;
 
-    // Margen neto real sobre costo unitario
     const margenReal = (gananciaNetaPorUnidad / costoUnitario) * 100;
 
-    return { precio, gananciaNetaPorUnidad, gananciaTotal, inversionTotal, costoEnvioGratis, margenReal };
+    // Texto de envío
+    const envioTexto = envioGratis
+      ? `Gratis para el comprador (lo paga el vendedor ${costoEnvioVendedor.toLocaleString("es-CO",{style:"currency",currency:"COP"})})`
+      : "No gratis (lo paga el comprador)";
+
+    return {
+      precio,
+      gananciaNetaPorUnidad,
+      gananciaTotal,
+      inversionTotal,
+      margenReal,
+      envioTexto
+    };
   }
 
-  const resClasica = calcularResultados(precioClasica, comisionBase);
-  const resPremium = calcularResultados(precioPremium, comisionBase + comisionPremiumExtra);
+  const resClasica = calcularResultados(
+    precioClasica,
+    comisionBase,
+    costoEnvioClasica
+  );
 
-  // Mostrar resultados (no se toca el diseño)
+  const resPremium = calcularResultados(
+    precioPremium,
+    comisionBase + comisionPremiumExtra,
+    costoEnvioPremium
+  );
+
+  // ====== UI de resultados (sin tocar tu diseño) ======
   const resultadosDiv = document.getElementById("resultados");
   resultadosDiv.innerHTML = `
     <h3>Resultados:</h3>
@@ -121,7 +144,7 @@ function simular() {
       <div style="border:1px solid #ccc;padding:15px;border-radius:10px;background:#f9f9f9;">
         <h4 style="margin-bottom:10px;">Publicación Clásica</h4>
         <p><b>Precio sugerido:</b> ${resClasica.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
-        <p><b>Envío:</b> ${resClasica.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resClasica.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
+        <p><b>Envío:</b> ${resClasica.envioTexto}</p>
         <p><b>Ganancia neta por unidad:</b> ${resClasica.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
         <p><b>Total ganancias netas:</b> ${resClasica.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resClasica.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
@@ -131,7 +154,7 @@ function simular() {
       <div style="border:1px solid #ccc;padding:15px;border-radius:10px;background:#f9f9f9;">
         <h4 style="margin-bottom:10px;">Publicación Premium</h4>
         <p><b>Precio sugerido:</b> ${resPremium.precio.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
-        <p><b>Envío:</b> ${resPremium.costoEnvioGratis > 0 ? `Gratis (costo vendedor ${resPremium.costoEnvioGratis.toLocaleString("es-CO",{style:"currency",currency:"COP"})})` : "No gratis (costo vendedor 0 COP)"}</p>
+        <p><b>Envío:</b> ${resPremium.envioTexto}</p>
         <p><b>Ganancia neta por unidad:</b> ${resPremium.gananciaNetaPorUnidad.toLocaleString("es-CO",{style:"currency",currency:"COP"})} <span style="color:green;">(esto es lo que te ganas descontando TODO)</span></p>
         <p><b>Total ganancias netas:</b> ${resPremium.gananciaTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
         <p><b>Recuperas tu inversión:</b> ${resPremium.inversionTotal.toLocaleString("es-CO",{style:"currency",currency:"COP"})}</p>
@@ -144,7 +167,7 @@ function simular() {
     </div>
   `;
 
-  // Gráfico (idéntico)
+  // ====== Gráfico comparativo ======
   const ctx = document.getElementById("graficoGanancias").getContext("2d");
   new Chart(ctx, {
     type: "bar",
@@ -182,4 +205,4 @@ function simular() {
       }
     }
   });
-}
+                                 }
